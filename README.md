@@ -1,180 +1,85 @@
-# 🎣 Phishing Email Detector
+# Phishing Email Detector
 
-A **hybrid phishing detection tool** combining rule-based analysis and machine learning to identify malicious emails. Built as part of a cybersecurity portfolio to demonstrate threat detection, Python development, and security analysis skills.
+A three-layer phishing email detector that combines a rule-based engine, a machine learning classifier, and a hybrid scorer. It reports a risk score from 0 to 100% with a verdict from SAFE to CRITICAL and lists the specific reasons behind it.
 
----
+This is a portfolio project. The classifier is trained on a small sample dataset, so treat it as a proof of concept and not a production filter.
 
-## Architecture: 3-Layer Detection System
+## How it works
 
-```
-Email Input
-    │
-    ├──► Layer 1: Rule Engine      (55% weight)
-    │         Sender spoofing, URL analysis,
-    │         urgency language, credential harvesting,
-    │         suspicious attachments, header anomalies
-    │
-    ├──► Layer 2: ML Classifier    (45% weight)
-    │         TF-IDF text features + engineered
-    │         numerical features → Voting Ensemble
-    │         (Logistic Regression + Random Forest)
-    │
-    └──► Layer 3: Hybrid Scorer
-              Weighted combination → Risk Score (0–100%)
-              SAFE | LOW | MEDIUM | HIGH | CRITICAL
-```
+1. **Rule-based engine** (`detector/rule_engine.py`): checks sender display name spoofing, Reply-To mismatches, suspicious URLs (IP addresses, odd top-level domains, URL shorteners, brand impersonation), urgency and threat language, credential harvesting phrases, financial scam language, dangerous attachment extensions, and subject line anomalies.
+2. **ML classifier** (`detector/ml_classifier.py`): TF-IDF features with bigrams on the subject and body, plus engineered features such as URL count and urgency word count, fed to a voting ensemble of Logistic Regression and Random Forest.
+3. **Hybrid scorer** (`detector/hybrid_analyzer.py`): combines the rule score and the ML probability into one risk score and a verdict: SAFE, LOW, MEDIUM, HIGH, or CRITICAL.
 
----
+## Setup
 
-## Features
+Requires Python 3.9 or newer.
 
-**Rule-Based Engine (Layer 1)**
-- Sender display name spoofing detection (e.g. `PayPal <noreply@paypa1.xyz>`)
-- Reply-To mismatch analysis
-- URL analysis: IP addresses, suspicious TLDs, URL shorteners, brand impersonation
-- Urgency/pressure language detection
-- Credential harvesting phrase detection
-- Financial scam language (gift cards, wire transfers, lottery)
-- Threat language (legal action, arrest, IRS)
-- Dangerous attachment extension detection
-- Subject line anomaly detection
+    git clone https://github.com/Luella-Cyber/phishing-email-detector.git
+    cd phishing-email-detector
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+    python3 cli.py --train
 
-**ML Classifier (Layer 2)**
-- TF-IDF vectorization with bigrams on email subject + body
-- Engineered numerical features: URL count, urgency word count, punctuation patterns
-- Voting ensemble of Logistic Regression + Random Forest
-- Trained on labeled phishing and legitimate email samples
-- Probability output feeds the hybrid scorer
-
-**Hybrid Scorer (Layer 3)**
-- Weighted combination of rule and ML scores
-- 5-tier risk verdict: SAFE / LOW / MEDIUM / HIGH / CRITICAL
-- Human-readable explanation of every triggered rule
-- Graceful degradation to rule-only if ML model unavailable
-
----
-
-## Installation
-
-```bash
-git clone https://github.com/Luella-Cyber/phishing-email-detector.git
-cd phishing-email-detector
-pip install -r requirements.txt
-```
-
----
+The trained model is not stored in the repository, so run the `--train` step once after cloning.
 
 ## Usage
 
-### 1. Train the ML Model (first time only)
-```bash
-python -m detector.ml_classifier
-```
+Run the built-in demo emails:
 
-### 2. Command Line — Quick Demo
-```bash
-python cli.py --demo
-```
+    python3 cli.py --demo
 
-### 3. Command Line — Analyze an Email
-```bash
-# Analyze a .eml file
-python cli.py --file path/to/email.eml
+Analyze a saved email file:
 
-# Analyze by pasting components
-python cli.py --subject "URGENT: Verify your account" \
-              --sender "support@paypa1.xyz" \
-              --body "Your account has been suspended. Click here immediately."
+    python3 cli.py --file email.eml
 
-# Output as JSON
-python cli.py --demo --json
-```
+Analyze an email by its parts:
 
-### 4. Web Interface
-```bash
-python app.py
-# Open http://localhost:5000
-```
+    python3 cli.py --subject "Verify your account" --sender "PayPal <billing@paypa1-support.com>" --body "Click here now"
 
----
+Output as JSON:
 
-## Example Output
+    python3 cli.py --demo --json
 
-```
-============================================================
-  PHISHING ANALYSIS REPORT
-============================================================
-  Verdict:    🔴  CRITICAL
-  Risk Score: 100.0%
-  Advice:     Highly likely phishing. Do not click any links or reply.
-------------------------------------------------------------
-  EMAIL DETAILS
-  Subject:    URGENT: Your PayPal account has been suspended - Verify Now
-  From:       support@paypa1-billing.xyz
-  Reply-To:   recovery@gmail.com
-  URLs found: 2
-------------------------------------------------------------
-  SCORE BREAKDOWN
-  Rule-based score: 100.0%
-  ML score:         88.4%
-  Final score:      94.8%
-------------------------------------------------------------
-  TRIGGERED RULES (4 found)
-  [95%] Sender Spoofing: Sender display name 'paypal' impersonates 'paypal' but email comes from 'paypa1-billing.xyz'
-  [75%] Reply-To Mismatch: Reply-To domain 'gmail.com' differs from sender domain 'paypa1-billing.xyz'
-  [85%] Suspicious URLs: Brand 'paypal' in URL but domain is 'paypal-secure-update.xyz'
-  [80%] Credential Harvesting: password, social security, credit card
-============================================================
-```
+Start the web interface:
 
----
+    python3 app.py
 
-## Project Structure
+Then open the address printed in the terminal.
 
-```
-phishing-email-detector/
-├── detector/
-│   ├── email_parser.py      # Parse .eml files and raw email text
-│   ├── rule_engine.py       # Layer 1: 10 rule-based checks
-│   ├── ml_classifier.py     # Layer 2: ML training and inference
-│   └── hybrid_analyzer.py   # Layer 3: Score combination and reporting
-├── data/
-│   └── training_data.csv    # Labeled phishing/legitimate email samples
-├── models/                  # Saved ML model (generated after training)
-├── cli.py                   # Command-line interface
-├── app.py                   # Flask web interface
-└── requirements.txt
-```
+## Demo results
 
----
+| Sample email | Verdict | Rule score | ML score | Final score |
+|---|---|---|---|---|
+| Phishing (shortened link, spoofed sender) | CRITICAL | 100.0% | 96.0% | 98.2% |
+| Legitimate Amazon shipment notice | SAFE | 0.0% | 40.4% | 18.2% |
 
-## Skills Demonstrated
+The legitimate email shows why the layers are combined. The ML model alone is unsure (40.4%), and the rule layer, which found no violations, brings the final score down to a safe level.
 
-- Python OOP and modular design
-- NLP and text feature engineering (TF-IDF, n-grams)
-- Machine learning (scikit-learn pipelines, ensemble methods)
-- Email security concepts (header analysis, spoofing, phishing IOCs)
-- Web application development (Flask)
-- Security tool development and documentation
+## Project structure
 
----
+    app.py                    Flask web interface
+    cli.py                    Command-line interface
+    requirements.txt          Python dependencies
+    data/training_data.csv    Labeled sample emails for training
+    detector/
+        email_parser.py       Parses .eml files and raw text
+        rule_engine.py        Rule-based checks
+        ml_classifier.py      Trains and runs the classifier
+        hybrid_analyzer.py    Combines both scores
 
-## Detection Rules Reference
+## Limitations
 
-| Rule | What It Catches | Max Score |
-|------|----------------|-----------|
-| Sender Spoofing | Display name impersonates trusted brand but wrong domain | 95% |
-| Reply-To Mismatch | Reply-To and From domains differ | 75% |
-| Free Email Provider | Corporate claims but Gmail/Yahoo sender | 80% |
-| Suspicious URLs | IP addresses, bad TLDs, shorteners, brand misuse | 90% |
-| Urgency Language | Pressure tactics and time limits | 75% |
-| Credential Harvesting | Requests for passwords, SSN, card numbers | 80% |
-| Financial Scam | Gift cards, wire transfers, prize claims | 85% |
-| Threat Language | Legal action, arrest, criminal charges | 75% |
-| Suspicious Attachments | .exe, .vbs, .js, macro-enabled files | 90% |
-| Subject Anomalies | ALL CAPS, excessive punctuation | 45% |
+- The training set is small (about 40 sample emails), so the ML layer is not reliable on its own. The rule layer carries most of the detection.
+- Results from the two demo emails are not an accuracy measurement. A proper evaluation would need a larger labeled dataset and a held-out test set.
+- The detector reads email content only. It does not check live URLs, sender reputation, or SPF, DKIM, or DMARC results.
 
----
+## Next steps
 
-*Part of the Cybersecurity Portfolio — Security Analyst in Training*  
-*[github.com/Luella-Cyber](https://github.com/Luella-Cyber)*
+- Train on a larger public phishing dataset and report precision and recall on a held-out set
+- Add unit tests for each rule
+- Add SPF, DKIM, and DMARC header checks
+
+## Author
+
+Luella Tracy Henderson | [LinkedIn](https://www.linkedin.com/in/luellatracyhenderson) | [GitHub](https://github.com/Luella-Cyber)
