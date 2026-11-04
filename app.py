@@ -244,7 +244,7 @@ HTML_TEMPLATE = """
     <span>🎣</span>
     <div>
         <h1>Phishing Email Detector</h1>
-        <div class="subtitle">Hybrid Rule-Based + ML Analysis · Built for Constellis Security Portfolio</div>
+        <div class="subtitle">Hybrid Rule-Based + ML Analysis · Security Portfolio Project</div>
     </div>
 </header>
 
