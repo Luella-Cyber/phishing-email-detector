@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 ml_classifier.py
 ----------------

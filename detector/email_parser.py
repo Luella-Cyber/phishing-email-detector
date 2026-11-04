@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 email_parser.py
 ---------------
@@ -55,4 +56,42 @@ def parse_email(source):
         elif content_type == "text/html":
             try:
                 parsed["body_html"] += part.get_payload(decode=True).decode(
-                    part.get_content_cha
+                    part.get_content_charset() or "utf-8", errors="replace"
+                )
+            except Exception:
+                pass
+
+    import re
+
+    # No plain-text part? Fall back to the HTML with the tags removed.
+    if not parsed["body_text"] and parsed["body_html"]:
+        parsed["body_text"] = re.sub(r"<[^>]+>", " ", parsed["body_html"])
+
+    # Collect URLs from the text and HTML parts, without duplicates.
+    combined = parsed["body_text"] + " " + parsed["body_html"]
+    found = re.findall(r"https?://[^\s<>\x22\x27)]+", combined)
+    parsed["urls"] = list(dict.fromkeys(found))
+
+    return parsed
+
+
+def get_display_name(sender):
+    """Return the display name from a From header, e.g. 'PayPal' from 'PayPal <a@b.com>'."""
+    from email.utils import parseaddr
+    name, _ = parseaddr(str(sender or ""))
+    return name.strip().strip('"')
+
+
+def get_sender_domain(sender):
+    """Return the lowercase domain from a From header, or '' if there is none."""
+    from email.utils import parseaddr
+    _, address = parseaddr(str(sender or ""))
+    if "@" in address:
+        return address.rsplit("@", 1)[1].strip().lower()
+    return ""
+
+
+def _get_header(msg, name):
+    """Return a header value as plain text, or '' if the header is missing."""
+    value = msg.get(name, "")
+    return str(value).strip() if value else ""
