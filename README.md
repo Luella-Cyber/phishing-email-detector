@@ -49,6 +49,8 @@ Then open the address printed in the terminal.
 
 ## Demo results
 
+![Web interface showing a CRITICAL phishing result](docs/phishing-demo.png)
+
 | Sample email | Verdict | Rule score | ML score | Final score |
 |---|---|---|---|---|
 | Phishing (shortened link, spoofed sender) | CRITICAL | 100.0% | 96.0% | 98.2% |
